@@ -237,7 +237,7 @@ def main(test_num = 5, simulate=True):
                 # Plot histogram of results
     else:
         #run on a real backend
-        service = QiskitRuntimeService(channel="ibm_quantum", token="08f4cd7fb93500f06914420dbe3731df8f195be7c2bb5b1eeefb5c7e0ba2d68e6b3a79a7b077bbc3d04ee4672c7ea51b8a5006a2cd182098dbd629b43060dae3")
+        service = QiskitRuntimeService(channel="ibm_quantum", token="") #put your IBM token here
         backend = service.backend("ibm_sherbrooke")
         pm = generate_preset_pass_manager(optimization_level=3, backend=backend)
         transpiled_circuit = pm.run(qc.decompose(reps=3))
@@ -269,7 +269,6 @@ def main(test_num = 5, simulate=True):
     plot_histogram(counts, title="Grover's Search Results", bar_labels=True)
     plt.show()
 
-    # Lấy K+1 kết quả có số lần xuất hiện nhiều nhất
     K = test_num
     print(f"Length of L: {len(list_L)}")
     top_outcomes = sorted(counts.items(), key=lambda x: x[1], reverse=True)[:K+1]
@@ -277,9 +276,8 @@ def main(test_num = 5, simulate=True):
     
     print("\nAnalyzing top outcomes for collisions:")
     for outcome, count in top_outcomes:
-        outcome_bits = tuple(int(b) for b in outcome[::-1])  # Chuyển về dạng tuple và đảo bit
+        outcome_bits = tuple(int(b) for b in outcome[::-1])  
         
-        # Kiểm tra xem outcome có trong list_L không
         found_in_L = False
         for hash_val, input_str in list_L:
             if tuple(int(b) for b in input_str) == outcome_bits:
@@ -289,23 +287,20 @@ def main(test_num = 5, simulate=True):
         if not found_in_L:
             print(f"\nTesting outcome: {''.join(str(b) for b in outcome_bits)}")
             
-            # Tính mã băm của outcome
             x_reg_temp = QuantumRegister(8, 'x_temp')
             h_reg_temp = QuantumRegister(4, 'h_temp')
             c_reg_temp = ClassicalRegister(4, 'c_temp')
             temp_qc = QuantumCircuit(x_reg_temp, h_reg_temp, c_reg_temp)
             
-            # Khởi tạo input state
             for i, bit in reversed(list(enumerate(outcome_bits))):
                 if bit == 1:
                     temp_qc.x(x_reg_temp[i])
             
-            # Áp dụng hàm băm
             uh_pqc_gate = build_unitary_pqc_hash_function_circuit()
             temp_qc.append(uh_pqc_gate, x_reg_temp[:] + h_reg_temp[:])
             temp_qc.measure(h_reg_temp, c_reg_temp)
             
-            # Mô phỏng
+            # Simulate
             simulator = AerSimulator()
             compiled = transpile(temp_qc, simulator)
             result = simulator.run(compiled, shots=100).result()
@@ -314,7 +309,7 @@ def main(test_num = 5, simulate=True):
 
             print(f"Hash value: {''.join(str(b) for b in hash_value)}")
             
-            # Tìm collision trong list_L
+            # Find collisions
             for l_hash, l_input in list_L:
                 if l_hash == hash_value and tuple(int(b) for b in l_input) != outcome_bits:
                     collision = (hash_value, (outcome_bits, tuple(int(b) for b in l_input)))
